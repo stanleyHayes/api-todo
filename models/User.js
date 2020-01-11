@@ -20,6 +20,15 @@ const UserSchema = new Schema({
     password: {
         type: String,
         required: true
+    },
+    verified: {
+        type: Boolean,
+        default: false
+    },
+    status: {
+        type: String,
+        enum: ["verified", "active", "blocked", "deactivated", "unverified"],
+        default: "unverified"
     }
 });
 
