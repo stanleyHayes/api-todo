@@ -18,6 +18,10 @@ const TodoSchema = new Schema({
     status: {
         type: Boolean,
         default: false
+    },
+    date_modified: {
+        type: Date,
+        default: Date.now()
     }
 });
 
