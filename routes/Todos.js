@@ -2,6 +2,8 @@ const express = require("express");
 
 const router = express.Router();
 
+const Todo = require("../models/Todo");
+
 /*
 * Creates new todoItem
 * status codes 201, 500
@@ -9,8 +11,19 @@ const router = express.Router();
 router.post("/", async function (req, res, next) {
     try {
 
-    }catch (e) {
-        return res.status(500).json({error: e.message});
+        //create a todoItem from request
+        const todo = {
+            owner: req.body.owner,
+            action: req.body.action
+        };
+
+        //add item to mongodb
+        const createdTodo = await Todo.create(todo);
+
+        //send created todoitem and a message as a response
+        return res.status(201).json({todo: createdTodo, message: "Todo Created Successfully"});
+    } catch (e) {
+        return res.status(500).json({error: e.message, message: "Something went wrong"});
     }
 });
 
@@ -21,8 +34,19 @@ router.post("/", async function (req, res, next) {
 * */
 router.put("/:todoID", async function (req, res, next) {
     try {
-
-    }catch (e) {
+        const id = req.params.todoID;
+        let {action, status} = req.body;
+        if (await Todo.findById(id)) {
+            const updatedTodo = await Todo.findByIdAndUpdate(id, {
+                action: action,
+                status: status,
+                date_modified: new Date()
+            }, {new: true});
+            return res.status(200).json({todo: updatedTodo, message: "Todo Successfully Updated"});
+        } else {
+            return res.status(404).json({error: "Todo not found"});
+        }
+    } catch (e) {
         return res.status(500).json({error: e.message});
     }
 });
@@ -34,8 +58,14 @@ router.put("/:todoID", async function (req, res, next) {
 * */
 router.get("/:todoID", async function (req, res, next) {
     try {
-
-    }catch (e) {
+        const id = req.params.todoID;
+        const todoFromDB = await Todo.findById(id).populate("owner");
+        if (!todoFromDB) {
+            return res.status(404).json({error: "Todo not found"});
+        } else {
+            return res.status(404).json({todo: todoFromDB});
+        }
+    } catch (e) {
         return res.status(500).json({error: e.message});
     }
 });
@@ -50,8 +80,10 @@ router.get("/:todoID", async function (req, res, next) {
 * */
 router.get("/", async function (req, res, next) {
     try {
-
-    }catch (e) {
+        const query = req.query;
+        const todos = await Todo.find(query).populate("author");
+        return res.status(200).json({todos: todos});
+    } catch (e) {
         return res.status(500).json({error: e.message});
     }
 });
@@ -63,8 +95,13 @@ router.get("/", async function (req, res, next) {
 
 router.delete("/:todoID", async function (req, res, next) {
     try {
-
-    }catch (e) {
+        const todoID = req.params.todoID;
+        await Todo.findByIdAndRemove(todoID);
+        if(await Todo.findById(todoID)){
+            return res.status(400).json({error: "Something went wrong"});
+        }
+        return res.status(200).json({message: "Todo successfully deleted"});
+    } catch (e) {
         return res.status(500).json({error: e.message});
     }
 });
@@ -76,8 +113,14 @@ router.delete("/:todoID", async function (req, res, next) {
 
 router.delete("/", async function (req, res, next) {
     try {
-
-    }catch (e) {
+        const query = req.query;
+        await Todo.delete(query);
+        const todos = await Todo.find({query});
+        if(todos.length > 0){
+            return res.status(400).json({error: "Something went wrong"});
+        }
+        return res.status(200).json({todos: todos, message: "Todos successfully deleted"});
+    } catch (e) {
         return res.status(500).json({error: e.message});
     }
 });
