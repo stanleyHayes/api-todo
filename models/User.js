@@ -29,6 +29,10 @@ const UserSchema = new Schema({
         type: String,
         enum: ["verified", "active", "blocked", "deactivated", "unverified"],
         default: "unverified"
+    },
+    name: {
+        required: true,
+        type: String
     }
 });
 

@@ -1,5 +1,6 @@
 const express = require("express");
-
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
 const router = express.Router();
 
 const Todo = require("../models/Todo");
@@ -10,6 +11,9 @@ const Todo = require("../models/Todo");
 * */
 router.post("/", async function (req, res, next) {
     try {
+
+        const userJWT = req.get("Authorization").slice("Bearer ".length);
+        jwt.verify(userJWT, process.env.JWT_SECRET);
 
         //create a todoItem from request
         const todo = {
@@ -34,12 +38,13 @@ router.post("/", async function (req, res, next) {
 * */
 router.put("/:todoID", async function (req, res, next) {
     try {
+        const userJWT = req.get("Authorization").slice("Bearer ".length);
+        jwt.verify(userJWT, process.env.JWT_SECRET);
         const id = req.params.todoID;
         let {action, status} = req.body;
         if (await Todo.findById(id)) {
             const updatedTodo = await Todo.findByIdAndUpdate(id, {
-                action: action,
-                status: status,
+                ...req.body,
                 date_modified: new Date()
             }, {new: true});
             return res.status(200).json({todo: updatedTodo, message: "Todo Successfully Updated"});
@@ -58,12 +63,14 @@ router.put("/:todoID", async function (req, res, next) {
 * */
 router.get("/:todoID", async function (req, res, next) {
     try {
+        const userJWT = req.get("Authorization").slice("Bearer ".length);
+        jwt.verify(userJWT, process.env.JWT_SECRET);
         const id = req.params.todoID;
         const todoFromDB = await Todo.findById(id).populate("owner");
         if (!todoFromDB) {
             return res.status(404).json({error: "Todo not found"});
         } else {
-            return res.status(404).json({todo: todoFromDB});
+            return res.status(200).json({todo: todoFromDB});
         }
     } catch (e) {
         return res.status(500).json({error: e.message});
@@ -80,8 +87,10 @@ router.get("/:todoID", async function (req, res, next) {
 * */
 router.get("/", async function (req, res, next) {
     try {
+        const userJWT = req.get("Authorization").slice("Bearer ".length);
+        jwt.verify(userJWT, process.env.JWT_SECRET);
         const query = req.query;
-        const todos = await Todo.find(query).populate("author");
+        const todos = await Todo.find(query).populate("owner");
         return res.status(200).json({todos: todos});
     } catch (e) {
         return res.status(500).json({error: e.message});
@@ -95,9 +104,11 @@ router.get("/", async function (req, res, next) {
 
 router.delete("/:todoID", async function (req, res, next) {
     try {
+        const userJWT = req.get("Authorization").slice("Bearer ".length);
+        jwt.verify(userJWT, process.env.JWT_SECRET);
         const todoID = req.params.todoID;
         await Todo.findByIdAndRemove(todoID);
-        if(await Todo.findById(todoID)){
+        if (await Todo.findById(todoID)) {
             return res.status(400).json({error: "Something went wrong"});
         }
         return res.status(200).json({message: "Todo successfully deleted"});
@@ -113,10 +124,12 @@ router.delete("/:todoID", async function (req, res, next) {
 
 router.delete("/", async function (req, res, next) {
     try {
+        const userJWT = req.get("Authorization").slice("Bearer ".length);
+        jwt.verify(userJWT, process.env.JWT_SECRET);
         const query = req.query;
         await Todo.delete(query);
         const todos = await Todo.find({query});
-        if(todos.length > 0){
+        if (todos.length > 0) {
             return res.status(400).json({error: "Something went wrong"});
         }
         return res.status(200).json({todos: todos, message: "Todos successfully deleted"});
@@ -124,3 +137,5 @@ router.delete("/", async function (req, res, next) {
         return res.status(500).json({error: e.message});
     }
 });
+
+module.exports = router;
